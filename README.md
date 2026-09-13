@@ -5,6 +5,54 @@
 
 > 🧡 Everything is RSSible
 
+## 大橋家 WHAT'S NEW（本 fork 新增）
+
+订阅 [大橋彩香官网 WHAT'S NEW](https://ayaka-ohashi.com/updates)：`/ayaka-ohashi/updates`。
+
+- 包含最新一页的 NEWS、RADIO、BLOG、MOVIE、WALLPAPER、LIVE STREAMING 等全部更新，保持官网顺序。
+- 公开文章提供完整正文、图片和原文链接；会员内容保留标题、日期、分类和登录阅读入口，不提供会员正文或音视频。
+- 广播各期即使共用链接也有独立 GUID；博客保留文章锚点。日期按日本时区转换。
+- 详情并发最多 3 个，共用页面只抓一次；缓存按固定时间过期，文章修改可被重新抓取。单条详情失败不影响其他条目，失败内容不写入详情缓存。
+- 使用 RSSHub 内置 RSS / Atom / JSON Feed、过滤和条数限制。订阅最新一页，不用于历史归档；建议阅读器至少每小时刷新。
+
+### 启动
+
+需要 Node.js 24.15+（24.x）或 22.22.2+（22.x），以及 package.json 指定的 pnpm 10.34.5。
+
+```sh
+git clone --branch feat/ayaka-ohashi-updates https://github.com/StarFreedomX/RSSHub.git
+cd RSSHub
+corepack enable
+pnpm install --frozen-lockfile
+pnpm build
+pnpm start
+```
+
+启动后将 `http://localhost:1200/ayaka-ohashi/updates` 加入阅读器。远程阅读器需要将 localhost 换成你部署的服务地址；官方公共 RSSHub 实例尚不包含本 fork 的路由。
+
+| 用途         | 路径                                            |
+| ------------ | ----------------------------------------------- |
+| 全部最新更新 | `/ayaka-ohashi/updates`                         |
+| 仅新闻       | `/ayaka-ohashi/updates?filter_category=NEWS`    |
+| 仅广播       | `/ayaka-ohashi/updates?filter_category=RADIO`   |
+| 排除博客     | `/ayaka-ohashi/updates?filterout_category=BLOG` |
+| 最新 5 条    | `/ayaka-ohashi/updates?limit=5`                 |
+| Atom         | `/ayaka-ohashi/updates?format=atom`             |
+| JSON Feed    | `/ayaka-ohashi/updates?format=json`             |
+
+分类和关键词过滤仅作用于官网最新一页。页面中没有匹配内容时，过滤结果可能为空。广播没有公开的单期 URL，使用日期与标题生成稳定锚点；若官网修改广播标题，该期可能作为新条目出现。
+
+可通过环境变量 `PORT` 调整端口、`CACHE_EXPIRE` 调整订阅缓存、`CACHE_CONTENT_EXPIRE` 调整正文缓存（单位均为秒，缓存默认分别为 300 / 3600 秒）。本路由不需要 Cookie、Redis 或浏览器。长期部署时请使用进程管理器，或用本 fork 源码构建 Docker 镜像；仓库原有 compose 文件引用的是上游镜像，不能直接提供新增路由。
+
+### 验证
+
+```sh
+pnpm build:routes
+pnpm vitest --run tests/ayaka-ohashi.test.ts
+```
+
+测试覆盖真实官网页面样本、广播去重、日本时区、会员提示、正文提取、失败重试，以及 RSS/Atom/JSON 输出、分类过滤和图片链接转换。样本来自 2026-09-13 的公开页面，测试无需连接官网。
+
 [![](https://img.shields.io/badge/dynamic/json?url=https://rsshub-analytics.diygod.workers.dev/&query=requests&color=F38020&label=requests&logo=cloudflare&style=flat-square&suffix=/month)](https://rsshub.app)
 [![docker publish](https://img.shields.io/docker/pulls/diygod/rsshub?label=docker%20pulls&logo=docker&style=flat-square)](https://hub.docker.com/r/diygod/rsshub)
 [![npm publish](https://img.shields.io/npm/dt/rsshub?label=npm%20downloads&logo=npm&style=flat-square)](https://www.npmjs.com/package/rsshub)
