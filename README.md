@@ -9,10 +9,10 @@
 
 订阅 [大橋彩香官网 WHAT'S NEW](https://ayaka-ohashi.com/updates)：`/ayaka-ohashi/updates`。
 
-- 包含最新一页的 NEWS、RADIO、BLOG、MOVIE、WALLPAPER、LIVE STREAMING 等全部更新，保持官网顺序。
-- 公开文章提供完整正文、图片和原文链接；会员内容保留标题、日期、分类和登录阅读入口，不提供会员正文或音视频。
-- 广播各期即使共用链接也有独立 GUID；博客保留文章锚点。日期按日本时区转换。
-- 详情并发最多 3 个，共用页面只抓一次；缓存按固定时间过期，文章修改可被重新抓取。单条详情失败不影响其他条目，失败内容不写入详情缓存。
+- 包含最新一页的 NEWS、RADIO、BLOG、MOVIE、WALLPAPER、LIVE STREAMING 等全部更新，按 RSSHub 的发布时间规则排序。
+- 公开文章提供完整正文、图片和原文链接；配置会员 Cookie / token 后，提供账号可访问的博客全文及图片、广播音频、视频播放器和壁纸预览。未配置时保留会员更新通知。
+- 广播各期即使共用链接也有独立 GUID，并按标题和日期匹配音频；博客按文章锚点提取对应正文、作者和精确发布时间。日期按日本时区转换。
+- 详情并发最多 3 个，共用页面只抓一次。会员详情按凭据隔离、最多缓存 60 秒，会员订阅不写入整份 feed 缓存；公开详情按 CACHE_CONTENT_EXPIRE 过期。单条详情失败不影响其他条目，失败内容不写入详情缓存。
 - 使用 RSSHub 内置 RSS / Atom / JSON Feed、过滤和条数限制。订阅最新一页，不用于历史归档；建议阅读器至少每小时刷新。
 
 ### 启动
@@ -42,7 +42,32 @@ pnpm start
 
 分类和关键词过滤仅作用于官网最新一页。页面中没有匹配内容时，过滤结果可能为空。广播没有公开的单期 URL，使用日期与标题生成稳定锚点；若官网修改广播标题，该期可能作为新条目出现。
 
-可通过环境变量 `PORT` 调整端口、`CACHE_EXPIRE` 调整订阅缓存、`CACHE_CONTENT_EXPIRE` 调整正文缓存（单位均为秒，缓存默认分别为 300 / 3600 秒）。本路由不需要 Cookie、Redis 或浏览器。长期部署时请使用进程管理器，或用本 fork 源码构建 Docker 镜像；仓库原有 compose 文件引用的是上游镜像，不能直接提供新增路由。
+可通过环境变量 `PORT` 调整端口、`CACHE_EXPIRE` 调整订阅缓存、`CACHE_CONTENT_EXPIRE` 调整正文缓存（单位均为秒，缓存默认分别为 300 / 3600 秒）。仅公开模式无需 Cookie；会员模式需要有效登录 Cookie 或 token。两种模式均不需要 Redis 或浏览器自动化。长期部署时请使用进程管理器，或用本 fork 源码构建 Docker 镜像；仓库原有 compose 文件引用的是上游镜像，不能直接提供新增路由。
+
+### 会员登录配置
+
+参考 Twitter 路由的登录态方式，在项目根目录 `.env` 中配置以下任意一种（完整 Cookie 优先）：
+
+```dotenv
+# 方案一：官网登录后，Network 面板中 ayaka-ohashi.com 请求的 Cookie 请求头值
+AYAKA_OHASHI_COOKIE='remember_user_token=你的值; _skiyaki_session=你的值'
+
+# 方案二：只填写 Cookie 中 remember_user_token 的原始值，保留原有 URL 编码
+# AYAKA_OHASHI_AUTH_TOKEN='你的remember_user_token值'
+
+# 本机使用仅监听回环地址
+LISTEN_INADDR_ANY=0
+```
+
+保存后重启服务。`.env` 已被 Git 忽略。无须向 RSS URL 传账号密码或 Cookie；本站使用 Bitfan 登录，本实现复用登录 Cookie / token，不提供账号密码自动登录。
+
+- BLOG：按锚点精确匹配单篇文章，不会将整页博客合并到每条更新。
+- RADIO：提供 HTML 音频播放器、下载链接和 MP3 enclosure；会员等级不符或已下架的期数显示对应提示。
+- MOVIE：嵌入官网提供的播放器，并附原站入口。播放仍受官方播放器权限和阅读器 iframe 支持情况影响。
+- WALLPAPER：显示会员预览和原站各尺寸下载链接；下载入口可能需要浏览器保持登录。
+- 官网的音频和壁纸 URL 有时效，过期后刷新 RSS 获取新链接；阅读器已保存的旧条目不会自动延长链接有效期。
+- 凭据过期、重定向到登录页或会员权限不足时显示配置检查提示，不把登录页面当正文；更新凭据后重启即可重试。
+- 公网部署的会员订阅会展示该账号可访问的内容，请配置 RSSHub 的 `ACCESS_KEY`，使用带 `?key=你的访问密钥` 的私有订阅地址。该密钥与官网登录 token 不同。不要把会员订阅部署为无鉴权的公共源。
 
 ### 验证
 
@@ -51,7 +76,7 @@ pnpm build:routes
 pnpm vitest --run tests/ayaka-ohashi.test.ts
 ```
 
-测试覆盖真实官网页面样本、广播去重、日本时区、会员提示、正文提取、失败重试，以及 RSS/Atom/JSON 输出、分类过滤和图片链接转换。样本来自 2026-09-13 的公开页面，测试无需连接官网。
+测试覆盖公开页面样本、按条目匹配的会员正文与媒体、Cookie/token、跨域重定向保护、登录失效、账号缓存隔离，以及 RSS/Atom/JSON 输出、分类过滤和图片链接转换。会员测试使用模拟内容，不包含真实会员文章、签名链接或凭据；测试无需连接官网。
 
 [![](https://img.shields.io/badge/dynamic/json?url=https://rsshub-analytics.diygod.workers.dev/&query=requests&color=F38020&label=requests&logo=cloudflare&style=flat-square&suffix=/month)](https://rsshub.app)
 [![docker publish](https://img.shields.io/docker/pulls/diygod/rsshub?label=docker%20pulls&logo=docker&style=flat-square)](https://hub.docker.com/r/diygod/rsshub)

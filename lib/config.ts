@@ -84,6 +84,8 @@ type ConfigEnvKeys =
     | 'FOLLOW_PRICE'
     | 'FOLLOW_USER_LIMIT'
     // Route-specific (dynamic cookies with prefixes)
+    | 'AYAKA_OHASHI_COOKIE'
+    | 'AYAKA_OHASHI_AUTH_TOKEN'
     | 'BAIDU_COOKIE'
     | `BILIBILI_COOKIE_${string}`
     | 'BILIBILI_DM_IMG_LIST'
@@ -345,6 +347,10 @@ export type Config = {
         disable_nsfw: boolean;
     };
     suffix?: string;
+    ayakaOhashi: {
+        cookie?: string;
+        authToken?: string;
+    };
     titleLengthLimit: number;
     format: string;
     openai: {
@@ -846,6 +852,10 @@ const calculateValue = () => {
         errorTrackingRouteTimeout: toInt(envs.ERROR_TRACKING_ROUTE_TIMEOUT || envs.SENTRY_ROUTE_TIMEOUT, 30000),
         enableRemoteDebugging: toBoolean(envs.ENABLE_REMOTE_DEBUGGING, false),
         // feed config
+        ayakaOhashi: {
+            cookie: envs.AYAKA_OHASHI_COOKIE,
+            authToken: envs.AYAKA_OHASHI_AUTH_TOKEN,
+        },
         hotlink: {
             template: envs.HOTLINK_TEMPLATE,
             includePaths: envs.HOTLINK_INCLUDE_PATHS ? envs.HOTLINK_INCLUDE_PATHS.split(',') : undefined,

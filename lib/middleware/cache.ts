@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { MiddlewareHandler } from 'hono';
 import xxhash from 'xxhash-wasm';
 
@@ -19,10 +21,12 @@ const middleware: MiddlewareHandler = async (ctx, next) => {
     }
 
     const requestPath = ctx.req.path;
+    // Keep member feeds isolated when the configured account changes or is removed.
+    const accountScope = requestPath === '/ayaka-ohashi/updates' ? createHash('sha256').update(JSON.stringify(config.ayakaOhashi)).digest('hex') : '';
     const format = `:${ctx.req.query('format') || config.format}`;
     const limit = ctx.req.query('limit') ? `:${ctx.req.query('limit')}` : '';
-    const key = 'rsshub:koa-redis-cache:' + h64ToString(requestPath + format + limit);
-    const controlKey = 'rsshub:path-requested:' + h64ToString(requestPath + format + limit);
+    const key = 'rsshub:koa-redis-cache:' + h64ToString(requestPath + format + limit + accountScope);
+    const controlKey = 'rsshub:path-requested:' + h64ToString(requestPath + format + limit + accountScope);
 
     let value = await cacheModule.globalCache.get(key);
 
